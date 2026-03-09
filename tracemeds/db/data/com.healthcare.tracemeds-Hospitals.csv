@@ -1,0 +1,6 @@
+hospitalID,hospitalName,location,state,hospitalType,contactPerson,email,phone,status
+H001,Government General Hospital,Chennai,Tamil Nadu,Government,Dr. Ramesh Kumar,ramesh.kumar@hospital.tn.gov.in,+91-44-12345678,ACTIVE
+H002,AIIMS Delhi,New Delhi,Delhi,Government,Dr. Priya Sharma,priya.sharma@aiims.edu,+91-11-26588500,ACTIVE
+H003,District Hospital Coimbatore,Coimbatore,Tamil Nadu,District,Dr. Suresh Babu,suresh.babu@district.tn.gov.in,+91-422-2211234,ACTIVE
+H004,Apollo Hospital,Mumbai,Maharashtra,Private,Dr. Anjali Mehta,anjali.mehta@apollo.com,+91-22-26777777,ACTIVE
+H005,Primary Health Centre Madurai,Madurai,Tamil Nadu,PHC,Dr. Lakshmi Devi,lakshmi.devi@phc.tn.gov.in,+91-452-2345678,ACTIVE

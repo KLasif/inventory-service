@@ -1,0 +1,80 @@
+{
+  "xsappname": "inventory-service",
+  "tenant-mode": "shared",
+  "description": "Security profile for TraceMeds multi-tenant application",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.HospitalUser",
+      "description": "Hospital user - create and view own indents"
+    },
+    {
+      "name": "$XSAPPNAME.ProcurementOfficer",
+      "description": "Procurement officer - manage POs and consolidate indents"
+    },
+    {
+      "name": "$XSAPPNAME.InventoryManager",
+      "description": "Inventory manager - manage stock and batches"
+    },
+    {
+      "name": "$XSAPPNAME.SystemAdmin",
+      "description": "System administrator - full access"
+    },
+    {
+      "name": "$XSAPPNAME.Callback",
+      "description": "Multi-tenancy callback access",
+      "grant-as-authority-to-apps": [
+        "$XSAPPNAME(application,sap-provisioning,tenant-onboarding)"
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "name": "HospitalID",
+      "description": "Hospital ID for data isolation",
+      "valueType": "string"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "HospitalUser",
+      "description": "Hospital User - access to IndentService",
+      "scope-references": [
+        "$XSAPPNAME.HospitalUser"
+      ],
+      "attribute-references": [
+        "HospitalID"
+      ]
+    },
+    {
+      "name": "ProcurementOfficer",
+      "description": "Procurement Officer - access to POService",
+      "scope-references": [
+        "$XSAPPNAME.ProcurementOfficer"
+      ]
+    },
+    {
+      "name": "InventoryManager",
+      "description": "Inventory Manager - access to InventoryService",
+      "scope-references": [
+        "$XSAPPNAME.InventoryManager"
+      ]
+    },
+    {
+      "name": "SystemAdmin",
+      "description": "System Administrator - full access",
+      "scope-references": [
+        "$XSAPPNAME.SystemAdmin",
+        "$XSAPPNAME.HospitalUser",
+        "$XSAPPNAME.ProcurementOfficer",
+        "$XSAPPNAME.InventoryManager"
+      ]
+    }
+  ],
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://oauth.pstmn.io/v1/callback",
+      "http://localhost:8080",
+      "https://*.ap21.hana.ondemand.com/**"
+    ]
+  }
+}

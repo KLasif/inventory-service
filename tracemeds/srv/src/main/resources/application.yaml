@@ -1,0 +1,142 @@
+---
+# ============================================================================
+# DEFAULT PROFILE - H2 in-memory for unit tests
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: default
+  sql:
+    init:
+      platform: h2
+cds:
+  data-source:
+    auto-config:
+      enabled: false
+
+---
+# ============================================================================
+# ACTUATOR - Health checks (shared across all profiles)
+# ============================================================================
+management:
+  endpoint:
+    health:
+      show-components: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    defaults:
+      enabled: false
+    ping:
+      enabled: true
+    db:
+      enabled: true
+
+---
+# ============================================================================
+# LOCAL PROFILE - H2 + Mock Security
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: local
+  profiles:
+    active: local
+
+  datasource:
+    url: jdbc:h2:mem:tracemedsdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+cds:
+  data-source:
+    auto-config:
+      enabled: true
+
+  # ✅ Correct CAP Java 3.x key — single word 'multitenancy' not 'multi-tenancy'
+  multitenancy:
+    enabled: false
+
+  security:
+    mock:
+      enabled: true
+      users:
+        alice:
+          password: alice
+          roles:
+            - SystemAdmin
+        bob:
+          password: bob
+          roles:
+            - HospitalUser
+          attributes:
+            HospitalID: H001
+        charlie:
+          password: charlie
+          roles:
+            - ProcurementOfficer
+        diana:
+          password: diana
+          roles:
+            - InventoryManager
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.healthcare.tracemeds: DEBUG
+    com.sap.cds: INFO
+
+---
+# ============================================================================
+# CLOUD PROFILE - BTP Deployment with XSUAA + Multi-tenancy
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: cloud
+
+  h2:
+    console:
+      enabled: false
+
+cds:
+  data-source:
+    auto-config:
+      enabled: true
+
+  # ✅ Correct CAP Java 3.x keys
+  multitenancy:
+    enabled: true
+    mtxs:
+      enabled: true
+    deployment:
+      subscriberOnly: true
+
+  security:
+    mock:
+      enabled: false
+    xsuaa:
+      enabled: true
+      auto: true
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.healthcare.tracemeds: INFO
+    com.sap.cds: WARN

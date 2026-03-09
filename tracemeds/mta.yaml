@@ -1,0 +1,173 @@
+_schema-version: 3.3.0
+ID: tracemeds
+version: 1.0.0
+description: Multi-tenant Drug Supply Chain Management Platform
+
+parameters:
+  enable-parallel-deployments: true
+
+modules:
+  # ============================================================================
+  # SERVICE MODULE - CAP Java Application
+  # ============================================================================
+  - name: tracemeds-srv
+    type: java
+    path: srv
+    parameters:
+      instances: 1
+      memory: 2048M
+      disk-quota: 1024M
+      buildpack: sap_java_buildpack_jakarta
+    properties:
+      SPRING_PROFILES_ACTIVE: cloud
+      JBP_CONFIG_COMPONENTS: "jres: ['com.sap.xs.java.buildpack.jre.SAPMachineJRE']"
+      JBP_CONFIG_SAP_MACHINE_JRE: '{ version: 21.+ }'
+    build-parameters:
+      builder: custom
+      commands:
+        - mvn clean package -DskipTests=true
+      build-result: target/*-exec.jar
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: tracemeds-db
+      - name: tracemeds-xsuaa
+      - name: tracemeds-destination
+      - name: tracemeds-objectstore
+      - name: tracemeds-service-manager
+      - name: tracemeds-saas-registry       # ✅ srv must know about saas-registry for MT callbacks
+
+  # ============================================================================
+  # DATABASE DEPLOYER MODULE
+  # ============================================================================
+  - name: tracemeds-db-deployer
+    type: hdb
+    path: db
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 256M
+      disk-quota: 512M
+    requires:
+      - name: tracemeds-db
+
+  # ============================================================================
+  # APPROUTER MODULE - Multi-tenant Routing + Authorization Code Flow
+  # ============================================================================
+  - name: tracemeds-approuter
+    type: approuter.nodejs
+    path: approuter
+    parameters:
+      memory: 256M
+      disk-quota: 256M
+      keep-existing-routes: true
+    properties:
+      TENANT_HOST_PATTERN: "^(.*)-${default-uri}"
+      # ✅ Required for authorization code flow — approuter handles the OAuth2 dance
+      SAP_JWT_TRUST_ACL: '[{"clientid":"*","identityzone":"*"}]'
+    provides:
+      - name: approuter
+        properties:
+          approuter-url: ${default-url}
+    requires:
+      - name: tracemeds-xsuaa
+      - name: tracemeds-destination          # ✅ approuter needs destination for routing
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api
+          url: ~{srv-url}
+          forwardAuthToken: true             # ✅ forwards JWT from approuter → srv
+          timeout: 600000
+
+# ==============================================================================
+# RESOURCES - BTP Services
+# ==============================================================================
+resources:
+  # ============================================================================
+  # HANA CLOUD DATABASE (Multi-tenant HDI Container)
+  # ============================================================================
+  - name: tracemeds-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+    properties:
+      hdi-container-name: ${service-name}
+
+  # ============================================================================
+  # XSUAA - Authorization Code Flow
+  # ============================================================================
+  - name: tracemeds-xsuaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application              # ✅ 'application' plan supports authorization_code
+      path: ./xs-security.json
+      config:
+        xsappname: tracemeds-${org}-${space}
+        tenant-mode: shared                  # ✅ required for multi-tenancy
+        oauth2-configuration:
+          grant-types:
+            - authorization_code             # ✅ enables authorization code flow
+            - client_credentials             # ✅ for service-to-service calls
+            - refresh_token                  # ✅ keeps user sessions alive
+          redirect-uris:
+            - https://*.cfapps.*.hana.ondemand.com/**   # ✅ CF wildcard
+            - http://localhost:*/**                      # ✅ local testing
+          token-validity: 3600               # access token valid for 1 hour
+          refresh-token-validity: 43200      # refresh token valid for 12 hours
+        foreign-scope-references:
+          - uaa.user                         # ✅ needed for user login
+
+  # ============================================================================
+  # DESTINATION SERVICE
+  # ============================================================================
+  - name: tracemeds-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+
+  # ============================================================================
+  # OBJECT STORE SERVICE (File Storage - S3 Compatible)
+  # ============================================================================
+  - name: tracemeds-objectstore
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: objectstore
+      service-plan: s3-standard
+    properties:
+      objectstore-service-name: ${service-name}
+
+  # ============================================================================
+  # SERVICE MANAGER (Multi-tenancy Support)
+  # ============================================================================
+  - name: tracemeds-service-manager
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: service-manager
+      service-plan: container
+
+  # ============================================================================
+  # SAAS REGISTRY (Tenant Subscription Management)
+  # ============================================================================
+  - name: tracemeds-saas-registry
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: srv-api
+    parameters:
+      service: saas-registry
+      service-plan: application
+      config:
+        appName: tracemeds-${org}-${space}
+        xsappname: tracemeds-${org}-${space}
+        displayName: TraceMeds - Drug Supply Chain Platform
+        description: Multi-tenant pharmaceutical supply chain management system
+        category: 'Healthcare & Supply Chain'
+        appUrls:
+          onSubscription: ~{srv-api/srv-url}/mt/v1.0/subscriptions/tenants/{tenantId}
+          getDependencies: ~{srv-api/srv-url}/mt/v1.0/dependencies
+          onSubscriptionAsync: false
+          callbackTimeoutMillis: 300000

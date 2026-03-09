@@ -1,0 +1,93 @@
+{
+  "xsappname": "inventory-service",
+  "tenant-mode": "dedicated",
+  "description": "Security descriptor for TraceMeds Inventory Service",
+
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.InventoryManager",
+      "description": "Full access to inventory records, movements, stock actions (reserve, release, dispatch, adjust)"
+    },
+    {
+      "name": "$XSAPPNAME.InventoryViewer",
+      "description": "Read-only access to inventory records and movements"
+    },
+    {
+      "name": "$XSAPPNAME.SystemAdmin",
+      "description": "System administrator — inherits all scopes, access to Products master data"
+    }
+  ],
+
+  "attributes": [],
+
+  "role-templates": [
+    {
+      "name": "InventoryManager",
+      "description": "Can create inventory records and perform all stock actions: reserve, release, dispatch, adjustStock",
+      "scope-references": [
+        "$XSAPPNAME.InventoryManager"
+      ],
+      "attribute-references": []
+    },
+    {
+      "name": "InventoryViewer",
+      "description": "Read-only access — can view inventory records, movements, expiry reports",
+      "scope-references": [
+        "$XSAPPNAME.InventoryViewer"
+      ],
+      "attribute-references": []
+    },
+    {
+      "name": "SystemAdmin",
+      "description": "Full system access — inherits InventoryManager and InventoryViewer",
+      "scope-references": [
+        "$XSAPPNAME.SystemAdmin",
+        "$XSAPPNAME.InventoryManager",
+        "$XSAPPNAME.InventoryViewer"
+      ],
+      "attribute-references": []
+    }
+  ],
+
+  "role-collections": [
+    {
+      "name": "TraceMeds_InventoryManager",
+      "description": "Assign to users who manage physical stock — receive goods, reserve, dispatch, adjust",
+      "role-template-references": [
+        "$XSAPPNAME.InventoryManager"
+      ]
+    },
+    {
+      "name": "TraceMeds_InventoryViewer",
+      "description": "Assign to users who only need to view stock levels and movement history",
+      "role-template-references": [
+        "$XSAPPNAME.InventoryViewer"
+      ]
+    },
+    {
+      "name": "TraceMeds_SystemAdmin",
+      "description": "Assign to system administrators — has all permissions across the service",
+      "role-template-references": [
+        "$XSAPPNAME.SystemAdmin"
+      ]
+    }
+  ],
+
+  "oauth2-configuration": {
+    "grant-types": [
+      "authorization_code",
+      "client_credentials",
+      "refresh_token"
+    ],
+    "redirect-uris": [
+      "https://oauth.pstmn.io/v1/callback",
+      "http://localhost:*/**"
+    ],
+    "token-validity": 3600,
+    "refresh-token-validity": 43200,
+    "credential-types": [
+      "binding-secret",
+      "x509"
+    ]
+  }
+}
