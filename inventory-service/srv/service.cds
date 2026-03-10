@@ -4,10 +4,10 @@ using { tracemeds.db as db } from '../db/schema';
 service InventoryService {
 
     @(restrict:[
-        { grant: ['CREATE','READ','UPDATE','DELETE'], to: 'InventoryManager'    },
-        { grant: ['READ'],                            to: 'HospitalUser'        },
-        { grant: ['READ'],                            to: 'ProcurementOfficer'  },
-        { grant: ['CREATE','READ','UPDATE','DELETE'], to: 'SystemAdmin'         }
+        { grant: ['CREATE','READ','UPDATE','DELETE','reserve','release','dispatch','adjustStock'], to: 'InventoryManager'   },
+        { grant: ['READ'],                                                                         to: 'HospitalUser'       },
+        { grant: ['READ'],                                                                         to: 'ProcurementOfficer' },
+        { grant: ['CREATE','READ','UPDATE','DELETE','reserve','release','dispatch','adjustStock'], to: 'SystemAdmin'        }
     ])
     entity InventoryRecords as projection on db.InventoryRecords {
         *,
@@ -31,10 +31,10 @@ service InventoryService {
     };
 
     @(restrict:[
-        { grant: ['CREATE','READ','UPDATE','DELETE'], to: 'InventoryManager'    },
-        { grant: ['READ'],                            to: 'HospitalUser'        },
-        { grant: ['READ'],                            to: 'ProcurementOfficer'  },
-        { grant: ['CREATE','READ','UPDATE','DELETE'], to: 'SystemAdmin'         }
+        { grant: ['CREATE','READ','UPDATE','DELETE'], to: 'InventoryManager'   },
+        { grant: ['READ'],                            to: 'HospitalUser'       },
+        { grant: ['READ'],                            to: 'ProcurementOfficer' },
+        { grant: ['CREATE','READ','UPDATE','DELETE'], to: 'SystemAdmin'        }
     ])
     entity InventoryMovements as projection on db.InventoryMovements;
 
