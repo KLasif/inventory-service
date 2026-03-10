@@ -4,12 +4,16 @@ import cds.gen.inventoryservice.*;
 import com.sap.cds.ql.*;
 import com.sap.cds.ql.cqn.CqnSelect;
 import com.sap.cds.ql.cqn.CqnUpdate;
+import com.sap.cds.ql.cqn.CqnAnalyzer;
+import com.sap.cds.reflect.CdsModel;
 import com.sap.cds.services.cds.*;
 import com.sap.cds.services.handler.*;
 import com.sap.cds.services.handler.annotations.*;
 import com.sap.cds.services.persistence.PersistenceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Component
 @ServiceName(InventoryService_.CDS_NAME)
@@ -18,6 +22,8 @@ public class InventoryServiceHandler implements EventHandler {
     @Autowired
     PersistenceService db;
 
+    @Autowired
+    CdsModel model;
 
     @Before(event = CqnService.EVENT_CREATE, entity = InventoryRecords_.CDS_NAME)
     public void beforeCreate(CdsCreateEventContext context, InventoryRecords record) {
@@ -30,12 +36,11 @@ public class InventoryServiceHandler implements EventHandler {
     }
 
     // ─── ACTION: RESERVE ─────────────────────────────────────────────────────
-    // NO second param — bound actions don't support entity injection in CAP 4.6.1
 
     @On(event = InventoryRecordsReserveContext.CDS_NAME, entity = InventoryRecords_.CDS_NAME)
     public void onReserve(InventoryRecordsReserveContext context) {
         Integer quantity = context.getQuantity();
-        String id = extractId(context.getCqn().toString());
+        String id = extractId(context.getCqn());
         InventoryRecords record = fetchRecord(id);
 
         int onHand    = toInt(record.getQuantityOnHand());
@@ -52,11 +57,12 @@ public class InventoryServiceHandler implements EventHandler {
         context.setResult(record);
     }
 
+    // ─── ACTION: RELEASE ─────────────────────────────────────────────────────
 
     @On(event = InventoryRecordsReleaseContext.CDS_NAME, entity = InventoryRecords_.CDS_NAME)
     public void onRelease(InventoryRecordsReleaseContext context) {
         Integer quantity = context.getQuantity();
-        String id = extractId(context.getCqn().toString());
+        String id = extractId(context.getCqn());
         InventoryRecords record = fetchRecord(id);
 
         int reserved = toInt(record.getReservedQuantity());
@@ -76,7 +82,7 @@ public class InventoryServiceHandler implements EventHandler {
     @On(event = InventoryRecordsDispatchContext.CDS_NAME, entity = InventoryRecords_.CDS_NAME)
     public void onDispatch(InventoryRecordsDispatchContext context) {
         Integer quantity = context.getQuantity();
-        String id = extractId(context.getCqn().toString());
+        String id = extractId(context.getCqn());
         InventoryRecords record = fetchRecord(id);
 
         int onHand     = toInt(record.getQuantityOnHand());
@@ -96,11 +102,13 @@ public class InventoryServiceHandler implements EventHandler {
         context.setResult(record);
     }
 
+    // ─── ACTION: ADJUST STOCK ────────────────────────────────────────────────
+
     @On(event = InventoryRecordsAdjustStockContext.CDS_NAME, entity = InventoryRecords_.CDS_NAME)
     public void onAdjustStock(InventoryRecordsAdjustStockContext context) {
         Integer quantity = context.getQuantity();
         String  reason   = context.getReason();
-        String id = extractId(context.getCqn().toString());
+        String id = extractId(context.getCqn());
         InventoryRecords record = fetchRecord(id);
 
         int onHand   = toInt(record.getQuantityOnHand());
@@ -118,20 +126,14 @@ public class InventoryServiceHandler implements EventHandler {
         context.setResult(record);
     }
 
-    private String extractId(String cqnString) {
-        // Pattern: ID = 'some-uuid'
-        int idIndex = cqnString.indexOf("ID = '");
-        if (idIndex == -1) {
-            idIndex = cqnString.indexOf("ID='");
-            if (idIndex == -1) {
-                throw new IllegalArgumentException("Cannot extract ID from CQN: " + cqnString);
-            }
-            idIndex += 4;
-        } else {
-            idIndex += 6;
+    private String extractId(CqnSelect cqn) {
+        CqnAnalyzer analyzer = CqnAnalyzer.create(model);
+        Map<String, Object> keys = analyzer.analyze(cqn).rootKeys();
+        Object id = keys.get(InventoryRecords.ID);
+        if (id == null) {
+            throw new IllegalArgumentException("Cannot extract ID from CQN: " + cqn);
         }
-        int endIndex = cqnString.indexOf("'", idIndex);
-        return cqnString.substring(idIndex, endIndex);
+        return id.toString();
     }
 
     private InventoryRecords fetchRecord(String id) {
