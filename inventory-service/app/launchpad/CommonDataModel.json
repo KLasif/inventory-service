@@ -1,0 +1,104 @@
+{
+  "_version": "3.0",
+  "identification": {
+    "id": "inventory-service-launchpad",
+    "entityType": "bundle"
+  },
+  "payload": {
+    "catalogs": [
+      {
+        "_version": "3.0",
+        "identification": {
+          "id"        : "inventory-catalog",
+          "entityType": "catalog",
+          "title"     : "Inventory Management"
+        },
+        "payload": {
+          "appDescriptors": [
+            {
+              "id": "inventoryui"
+            }
+          ]
+        }
+      }
+    ],
+    "groups": [
+      {
+        "_version": "3.0",
+        "identification": {
+          "id"        : "inventory-group",
+          "entityType": "group",
+          "title"     : "Inventory Management"
+        },
+        "payload": {
+          "tiles": [
+            {
+              "id"   : "inventory-tile",
+              "vizId": "inventoryui~Inventory-display"
+            }
+          ]
+        }
+      }
+    ],
+    "pages": [
+      {
+        "_version": "3.0",
+        "identification": {
+          "id"        : "inventory-page",
+          "entityType": "page",
+          "title"     : "Inventory Management"
+        },
+        "payload": {
+          "layout": {
+            "layoutType": "FioriBefore1905"
+          },
+          "sections": [
+            {
+              "title" : "Inventory",
+              "layout": { "layoutType": "FioriBefore1905" },
+              "viz"   : [
+                {
+                  "id"   : "inventory-viz",
+                  "vizId": "inventoryui~Inventory-display"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "visualizations": [
+      {
+        "_version": "3.0",
+        "identification": {
+          "id"        : "inventoryui~Inventory-display",
+          "entityType": "vizConfig"
+        },
+        "payload": {
+          "url"  : "/inventoryui",
+          "vizType"    : "sap.ushell.StaticAppLauncher",
+          "businessApp": "inventoryui",
+          "vizConfig"  : {
+            "sap.app": {
+              "title"      : "Inventory Records",
+              "subTitle"   : "Manage medical inventory",
+              "crossNavigation": {
+                "navTargets": {
+                  "Inventory-display": {
+                    "semanticObject": "Inventory",
+                    "action"        : "display"
+                  }
+                }
+              }
+            },
+            "sap.ui": {
+              "icons": {
+                "icon": "sap-icon://medicines"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

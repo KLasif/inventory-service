@@ -16,7 +16,7 @@
 		"description": "{{appDescription}}",
 		"resources": "resources.json",
 		"sourceTemplate": {
-			"id": "@sap/generator-fiori:fpm",
+			"id": "@sap/generator-fiori:list-report-object-page",
 			"version": "1.20.4",
 			"toolsId": "aa000c2e-5e96-41fb-9090-3ca0c130daa0"
 		},
@@ -27,6 +27,21 @@
 				"settings": {
 					"annotations": [],
 					"odataVersion": "4.01"
+				}
+			}
+		},
+		"crossNavigation": {
+			"inbounds": {
+				"Inventory-display": {
+					"semanticObject": "Inventory",
+					"action": "display",
+					"title": "{{appTitle}}",
+					"subTitle": "{{appDescription}}",
+					"icon": "sap-icon://medicines",
+					"signature": {
+						"parameters": {},
+						"additionalParameters": "allowed"
+					}
 				}
 			}
 		}
@@ -54,7 +69,8 @@
 			"libs": {
 				"sap.m": {},
 				"sap.ui.core": {},
-				"sap.fe.core": {}
+				"sap.fe.core": {},
+				"sap.fe.templates": {}
 			}
 		},
 		"contentDensities": {
@@ -97,21 +113,42 @@
 			"config": {},
 			"routes": [
 				{
-					"name": "InventoryRecordsMain",
+					"name": "InventoryRecordsList",
 					"pattern": ":?query:",
-					"target": "InventoryRecordsMain"
+					"target": "InventoryRecordsList"
+				},
+				{
+					"name": "InventoryRecordsObjectPage",
+					"pattern": "InventoryRecords({key}):?query:",
+					"target": "InventoryRecordsObjectPage"
 				}
 			],
 			"targets": {
-				"InventoryRecordsMain": {
+				"InventoryRecordsList": {
 					"type": "Component",
-					"id": "InventoryRecordsMain",
-					"name": "sap.fe.core.fpm",
+					"id": "InventoryRecordsList",
+					"name": "sap.fe.templates.ListReport",
 					"options": {
 						"settings": {
-							"navigation": {},
-							"contextPath": "/InventoryRecords",
-							"viewName": "inventoryui.ext.main.Main"
+							"entitySet": "InventoryRecords",
+							"navigation": {
+								"InventoryRecords": {
+									"detail": {
+										"route": "InventoryRecordsObjectPage"
+									}
+								}
+							}
+						}
+					}
+				},
+				"InventoryRecordsObjectPage": {
+					"type": "Component",
+					"id": "InventoryRecordsObjectPage",
+					"name": "sap.fe.templates.ObjectPage",
+					"options": {
+						"settings": {
+							"entitySet": "InventoryRecords",
+							"editableHeaderContent": false
 						}
 					}
 				}

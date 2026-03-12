@@ -1,0 +1,14 @@
+{
+  "name": "inventory-service-approuter",
+  "version": "1.0.0",
+  "description": "Approuter for Inventory Service Fiori UI",
+  "dependencies": {
+    "@sap/approuter": "^21.0.0"
+  },
+  "scripts": {
+    "start": "node node_modules/@sap/approuter/approuter.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

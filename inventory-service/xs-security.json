@@ -81,7 +81,8 @@
     ],
     "redirect-uris": [
       "https://oauth.pstmn.io/v1/callback",
-      "http://localhost:*/**"
+      "http://localhost:*/**",
+      "https://e1908b1etrial-dev-inventory-service-approuter.cfapps.ap21.hana.ondemand.com/**"
     ],
     "token-validity": 3600,
     "refresh-token-validity": 43200,

@@ -2,99 +2,159 @@ _schema-version: 3.3.0
 ID: inventory-service
 description: A simple CAP project.
 version: 1.0.0-SNAPSHOT
+
 modules:
-- name: inventory-service-srv
-  type: java
-  path: srv
-  properties:
-    JBP_CONFIG_COMPONENTS: 'jres: [''com.sap.xs.java.buildpack.jre.SAPMachineJRE'']'
-    JBP_CONFIG_SAP_MACHINE_JRE: '{ version: 21.+ }'
-    SPRING_PROFILES_ACTIVE: cloud
-  requires:
-  - name: inventory-service-db
-  - name: inventory-xsuaa
-  provides:
-  - name: srv-api
+
+# ── 1. Java CAP Backend ───────────────────────────────────────────────────────
+  - name: inventory-service-srv
+    type: java
+    path: srv
     properties:
-      srv-url: ${default-url}
-  parameters:
-    buildpack: sap_java_buildpack_jakarta
-    instances: 1
-  build-parameters:
-    build-result: target/*-exec.jar
-    builder: custom
-    commands:
-    - mvn clean package -DskipTests=true --batch-mode
-- name: inventory-service-db-deployer
-  type: hdb
-  path: db
-  requires:
-  - name: inventory-service-db
-  parameters:
-    buildpack: nodejs_buildpack
-  build-parameters:
-    builder: custom
-    commands:
-    - npm run build
-- name: inventory-service-app-content
-  type: com.sap.application.content
-  path: .
-  requires:
-  - name: inventory-service-repo-host
-    parameters:
-      content-target: true
-  build-parameters:
-    build-result: resources
+      JBP_CONFIG_COMPONENTS: "jres: ['com.sap.xs.java.buildpack.jre.SAPMachineJRE']"
+      JBP_CONFIG_SAP_MACHINE_JRE: "{ version: 21.+ }"
+      SPRING_PROFILES_ACTIVE: cloud
     requires:
-    - artifacts:
-      - inventoryui.zip
-      name: inventoryui
-      target-path: resources/
-- name: inventoryui
-  type: html5
-  path: app/inventory-ui
-  build-parameters:
-    build-result: dist
-    builder: custom
-    commands:
-    - npm install
-    - npm run build:cf
-    supported-platforms: []
+      - name: inventory-service-db
+      - name: inventory-xsuaa
+      - name: inventory-service-destination-service
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    parameters:
+      buildpack: sap_java_buildpack_jakarta
+      instances: 1
+    build-parameters:
+      build-result: target/*-exec.jar
+      builder: custom
+      commands:
+        - mvn clean package -DskipTests=true --batch-mode
+
+# ── 2. HANA DB Deployer ───────────────────────────────────────────────────────
+  - name: inventory-service-db-deployer
+    type: hdb
+    path: db
+    requires:
+      - name: inventory-service-db
+    parameters:
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+
+# ── 3. Approuter ─────────────────────────────────────────────────────────────
+  - name: inventory-service-approuter
+    type: approuter.nodejs
+    path: app/approuter
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: inventory-service-repo-runtime
+      - name: inventory-xsuaa
+      - name: inventory-service-destination-service
+      - name: srv-api
+        group: destinations
+        properties:
+          forwardAuthToken: true
+          strictSSL: false
+          name: inventory-service-srv-api
+          url: ~{srv-url}
+    provides:
+      - name: app-api
+        properties:
+          app-url: ${default-url}
+
+# ── 4. Fiori App Content Deployer ─────────────────────────────────────────────
+  - name: inventory-service-app-content
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: inventory-service-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - artifacts:
+            - inventoryui.zip
+          name: inventoryui
+          target-path: resources/
+
+# ── 5. Fiori UI Builder ───────────────────────────────────────────────────────
+  - name: inventoryui
+    type: html5
+    path: app/inventory-ui
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm install
+        - npm run build:cf
+      supported-platforms: []
+
 resources:
-- name: inventory-service-db
-  type: com.sap.xs.hdi-container
-  parameters:
-    service: hana
-    service-plan: hdi-shared
-- name: inventory-xsuaa
-  type: org.cloudfoundry.managed-service
-  parameters:
-    service: xsuaa
-    service-plan: application
-- name: inventory-service-repo-host
-  type: org.cloudfoundry.managed-service
-  parameters:
-    service: html5-apps-repo
-    service-name: inventory-service-html5-service
-    service-plan: app-host
-- name: inventory-service-destination-service
-  type: org.cloudfoundry.managed-service
-  parameters:
-    config:
-      HTML5Runtime_enabled: false
-      init_data:
-        instance:
-          destinations:
-          - Authentication: NoAuthentication
-            Name: ui5
-            ProxyType: Internet
-            Type: HTTP
-            URL: https://ui5.sap.com
-          existing_destinations_policy: update
-      version: 1.0.0
-    service: destination
-    service-name: inventory-service-destination-service
-    service-plan: lite
+
+# ── HANA HDI Container ────────────────────────────────────────────────────────
+  - name: inventory-service-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+
+# ── XSUAA Authentication ──────────────────────────────────────────────────────
+  - name: inventory-xsuaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+
+# ── HTML5 App Repository Host ─────────────────────────────────────────────────
+  - name: inventory-service-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-name: inventory-service-html5-service
+      service-plan: app-host
+
+# ── HTML5 App Repository Runtime ─────────────────────────────────────────────
+  - name: inventory-service-repo-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-name: inventory-service-html5-runtime
+      service-plan: app-runtime
+
+# ── Destination Service ───────────────────────────────────────────────────────
+  - name: inventory-service-destination-service
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            destinations:
+              - Authentication: NoAuthentication
+                Name: ui5
+                ProxyType: Internet
+                Type: HTTP
+                URL: https://ui5.sap.com
+              - Authentication: NoAuthentication
+                Name: inventory-service-srv-api
+                ProxyType: Internet
+                Type: HTTP
+                URL: ~{srv-api/srv-url}
+                forwardAuthToken: true
+            existing_destinations_policy: update
+        version: 1.0.0
+      service: destination
+      service-name: inventory-service-destination-service
+      service-plan: lite
+    requires:
+      - name: srv-api
+
 parameters:
   deploy_mode: html5-repo
   enable-parallel-deployments: true

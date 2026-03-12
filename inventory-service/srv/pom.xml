@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -9,51 +11,71 @@
 
 	<artifactId>inventory-service</artifactId>
 	<packaging>jar</packaging>
-
 	<name>inventory-service</name>
 
-	<!-- ACTUAL DEPENDENCIES -->
 	<dependencies>
 		<!-- CDS SPRING BOOT STARTER -->
 		<dependency>
 			<groupId>com.sap.cds</groupId>
 			<artifactId>cds-starter-spring-boot</artifactId>
+			<!-- version managed by cds-services-bom in parent -->
 		</dependency>
 
+		<!-- SPRING BOOT DEV TOOLS -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<optional>true</optional>
+			<!-- version managed by spring-boot-dependencies in parent -->
 		</dependency>
 
+		<!-- SPRING BOOT TEST -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+			<!-- version managed by spring-boot-dependencies in parent -->
 		</dependency>
 
+		<!-- ODATA V4 ADAPTER -->
 		<dependency>
 			<groupId>com.sap.cds</groupId>
 			<artifactId>cds-adapter-odata-v4</artifactId>
 			<scope>runtime</scope>
+			<!-- version managed by cds-services-bom in parent -->
 		</dependency>
 
+		<!-- H2 IN-MEMORY DATABASE (local dev) -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>runtime</scope>
+			<!-- version managed by spring-boot-dependencies in parent -->
 		</dependency>
 
+		<!-- CLOUD FOUNDRY SUPPORT -->
 		<dependency>
 			<groupId>com.sap.cds</groupId>
 			<artifactId>cds-starter-cloudfoundry</artifactId>
 			<scope>runtime</scope>
+			<!-- version managed by cds-services-bom in parent -->
 		</dependency>
 
+		<!-- ACTUATOR FOR HEALTH CHECKS -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+			<!-- version managed by spring-boot-dependencies in parent -->
 		</dependency>
+
+		<!-- SAP CLOUD SDK — CONNECTIVITY & DESTINATION SERVICE -->
+		<!-- version managed by sdk-bom in parent dependencyManagement -->
+		<dependency>
+			<groupId>com.sap.cloud.sdk.cloudplatform</groupId>
+			<artifactId>connectivity-destination-service</artifactId>
+		</dependency>
+
+		<!-- NOTE: sdk-bom is NOT here — BOMs belong only in dependencyManagement (parent pom.xml) -->
 	</dependencies>
 
 	<build>
@@ -146,5 +168,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
